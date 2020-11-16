@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.1.9/p5.min.js"
+    integrity="sha512-WIklPM6qPCIp6d3fSSr90j+1unQHUOoWDS4sdTiR8gxUTnyZ8S2Mr8e10sKKJ/bhJgpAa/qG068RDkg6fIlNFA=="
+    crossorigin="anonymous"></script>
+  <title>Picture Pins</title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="">
+</head>
+
+<body>
+  <h1>Record your mood, the weather, and a pic!</h1>
+  <a href="index.html">Log Selfie</a> | <a href="all.html">View Selfies</a>
+  <p>
+    Latitude: <span id="latitude"></span><br>
+    Longitude: <span id="longitude"></span><br>
+    The weather here is <span id="weather"></span> and the temperature is <span id="temperature"></span>&deg; Farenheit.
+  </p>
+  <input type="text" id="mood" placeholder="Mood"></input>
+  <button id="submitBtn">Submit</button>
+
+  <script>
+    function setup() {
+      noCanvas();
+      const video = createCapture(VIDEO);
+      video.size(160, 120);
+      let lat, lon, localTemp, localWeather;
+       //Grab geolocation and make API request to ClimaCell
+       if ('geolocation' in navigator) {
+        console.log('geolocation available');
+        navigator.geolocation.getCurrentPosition(async position => {
+          lat = position.coords.latitude;
+          lon = position.coords.longitude;
+          console.log(lat, lon);
+          document.getElementById('latitude').textContent = lat;
+          document.getElementById('longitude').textContent = lon;
+          const api_url = `weather/${lat},${lon}`;
+          const response = await fetch(api_url);
+          const json = await response.json();
+          console.log(json);
+          localWeather = json.weather_code.value;
+          localTemp = json.temp.value;
+          document.getElementById("weather").textContent = localWeather;
+          document.getElementById("temperature").textContent = localTemp;
+        });
+      } else {
+        console.log('geolocation not available');
+      }
+      const button = document.getElementById('submitBtn');
+      button.addEventListener('click', async event => {
+        const mood = document.getElementById('mood').value;
+        video.loadPixels();
+        const image64 = video.canvas.toDataURL();
+        const data = {
+          lat,
+          lon,
+          mood,
+          image64,
+          localTemp,
+          localWeather
+        };
+        const options = {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        };
+        const response = await fetch('/api', options);
+        const json = await response.json();
+        console.log(json);
+      });
+
+     
+    }
+  </script>
+</body>
+
+</html>
